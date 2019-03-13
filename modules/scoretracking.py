@@ -24,6 +24,7 @@ async def main(client):
             for oneentry in tracklist:
                 user_top_scores = await osuapi.get_user_best(oneentry[0])
                 if user_top_scores:
+                    print("checking user %s" % (oneentry[1]))
                     localdata = json.loads(oneentry[3])
                     await dbhandler.query(["UPDATE scoretrackingdata SET contents = ? WHERE osuid = ?", [json.dumps(user_top_scores), oneentry[0]]])
                     difference = await comparelists(localdata, user_top_scores)
@@ -34,7 +35,7 @@ async def main(client):
                             tochannel = client.get_channel(int(onechannel))
                             await tochannel.send(embed=embed)
                 else:
-                    print("`%s` | `%s` | restricted or connection issues" % (str(oneentry[0])))
+                    print("%s | restricted or connection issues" % (str(oneentry[0])))
                 await asyncio.sleep(5)
         await asyncio.sleep(1200)
     except Exception as e:
@@ -94,14 +95,20 @@ async def csv_remove(csv, newentrycsv):
     return ",".join(channellist)
 
 
-async def tracklist(ctx):
+async def csv_mentionchannels(csv_str):
+    channellist = ""
+    for onechannel in csv_str.split(","):
+        channellist += "<#%s> " % (onechannel)
+    return channellist
+
+
+async def tracklist(ctx, everywhere = None):
     tracklist = await dbhandler.query("SELECT * FROM scoretrackingdata")
     if tracklist:
         for oneentry in tracklist:
-            channellist = ""
-            for onechannel in oneentry[2].split(","):
-                channellist += "<#%s> " % (onechannel)
-            await ctx.send(content='osu_id: `%s` | Username: `%s` | channels: %s' % (oneentry[0], oneentry[1], channellist))
+            if (str(ctx.channel.id) in oneentry[2]) or (everywhere):
+                channellist = await csv_mentionchannels(oneentry[2])
+                await ctx.send(content='osu_id: `%s` | Username: `%s` | channels: %s' % (oneentry[0], oneentry[1], channellist))
 
 
 async def print_play(play, beatmap, display_name):
@@ -111,7 +118,7 @@ async def print_play(play, beatmap, display_name):
             title=str(beatmap['title']), 
             description=str(beatmap['version']), 
             url='https://osu.ppy.sh/beatmapsets/%s' % (str(beatmap['beatmapset_id'])), 
-            color=0xbd3661
+            color=0xaee9f3
         )
         embed.set_author(
             name="%s just made a new top play on:" % (display_name),

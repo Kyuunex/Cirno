@@ -3,7 +3,7 @@ import asyncio
 import pycountry
 
 
-async def mapset(beatmapsetobject, color = 0xbd3661):
+async def mapset(beatmapsetobject, color = 0xaee9f3):
     if beatmapsetobject:
         beatmapobject = beatmapsetobject[0]
         mapsetembed = discord.Embed(
@@ -63,7 +63,7 @@ async def osuprofile(osuprofile):
         osuprofileembed = discord.Embed(
             title=osuprofile['username'],
             url='https://osu.ppy.sh/users/%s' % (str(osuprofile['user_id'])),
-            color=0xbd3661,
+            color=0xaee9f3,
             description=str("%s%sJoined osu on: %s" %
                             (flag, performance, str(osuprofile['join_date'])))
         )

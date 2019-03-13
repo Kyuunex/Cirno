@@ -13,7 +13,7 @@ from modules import scoretracking
 
 client = commands.Bot(command_prefix=',', description='Cirno teaches you how to be a bot master.')
 #client.remove_command('help')
-appversion = "b20190310"
+appversion = "b20190313"
 
 
 @client.event
@@ -98,8 +98,9 @@ async def user(ctx, *, username):
 
 
 @client.command(name="track", brief="Start tracking user's scores.", description="", pass_context=True)
-async def scoretrack(ctx, userid: str, csv_channellist: str = None):
+async def scoretrack(ctx, *, userid):
     if await permissions.check(ctx.message.author.id):
+        csv_channellist = None
         if csv_channellist == None:
             csv_channellist = ctx.channel.id
         await scoretracking.track(ctx, userid, csv_channellist)
@@ -108,8 +109,9 @@ async def scoretrack(ctx, userid: str, csv_channellist: str = None):
 
 
 @client.command(name="untrack", brief="Stop tracking user's scores.", description="", pass_context=True)
-async def scoreuntrack(ctx, userid: str, csv_channellist: str = None):
+async def scoreuntrack(ctx, *, userid):
     if await permissions.check(ctx.message.author.id):
+        csv_channellist = None
         if csv_channellist == None:
             csv_channellist = ctx.channel.id
         await scoretracking.untrack(ctx, userid, csv_channellist)
@@ -118,9 +120,9 @@ async def scoreuntrack(ctx, userid: str, csv_channellist: str = None):
 
 
 @client.command(name="tracklist", brief="Show a list of all users being tracked and where.", description="", pass_context=True)
-async def scoretracklist(ctx):
+async def scoretracklist(ctx, everywhere = None):
     if await permissions.check(ctx.message.author.id):
-        await scoretracking.tracklist(ctx)
+        await scoretracking.tracklist(ctx, everywhere)
     else:
         await ctx.send(embed=await permissions.error())
 
