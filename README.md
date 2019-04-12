@@ -11,7 +11,7 @@ This bot is built using discord.py rewrite library and uses sqlite3 database.
 1. Install git.
 2. Clone this repo using this command `git clone https://github.com/Kyuunex/Cirno.git`
 3. Install `Python 3.5.3` or newer
-4. Install `discord.py rewrite library` using this command `python -m pip install -U git+https://github.com/Rapptz/discord.py@rewrite#egg=discord.py[voice]` for windows or `python3 -m pip install -U git+https://github.com/Rapptz/discord.py@rewrite#egg=discord.py[voice] --user` for linux
+4. Install `discord.py rewrite library` using this command `python -m pip install -U discord.py[voice]` for Windows and `python3 -m pip install -U discord.py[voice]` for Linux.
 5. Install `pycountry` using this command `pip install <package name>`. (`pip3` on linux)
 6. Before using, you need to create a folder called `data` and create `token.txt` and `osuapikey.txt` in it. Then put your bot token and osu api key in the files. 
 7. To start the bot, run `cirno.bat` if you are on windows or `cirno.sh` if you are on linux. Alternatively, you can manually run `run.py` file but I recommend using the included launchers because it starts the bot in a loop which is required by the `;restart` and `;gitpull` commands.
