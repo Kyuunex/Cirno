@@ -13,7 +13,7 @@ from modules import scoretracking
 
 client = commands.Bot(command_prefix=',', description='Cirno teaches you how to be a bot master.')
 #client.remove_command('help')
-appversion = "b20190313"
+appversion = "b20190411"
 
 
 @client.event

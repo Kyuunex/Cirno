@@ -5,6 +5,7 @@ import discord
 from modules import dbhandler
 from modules import osuapi
 from modules import osuembed
+from modules import csvproc
 
 
 async def comparelists(list2, list1):
@@ -63,7 +64,7 @@ async def track(ctx, userid, channellist):
                 ])
             await ctx.send(content='Tracked %s' % (userid))
         else:
-            newcsv = await csv_add(trackinfo[0][2], channellist)
+            newcsv = await csvproc.csv_add(trackinfo[0][2], channellist)
             await dbhandler.query(["UPDATE scoretrackingdata SET channels = ? WHERE osuid = ?", [newcsv, str(user_top_scores[0]['user_id'])]])
             await ctx.send(content='Tracked %s in here' % (userid))
 
@@ -71,7 +72,7 @@ async def track(ctx, userid, channellist):
 async def untrack(ctx, userid, channellist):
     trackinfo = await dbhandler.query(["SELECT * FROM scoretrackingdata WHERE osuid = ?", [str(userid)]])
     if trackinfo:
-        newcsv = await csv_remove(trackinfo[0][2], channellist)
+        newcsv = await csvproc.csv_remove(trackinfo[0][2], channellist)
         if newcsv:
             await dbhandler.query(["UPDATE scoretrackingdata SET channels = ? WHERE osuid = ?", [newcsv, str(userid)]])
         else:
@@ -79,35 +80,12 @@ async def untrack(ctx, userid, channellist):
         await ctx.send(content='Untracked %s in here' % (userid))
 
 
-async def csv_add(csv, newentrycsv):
-    channellist = csv.split(",")
-    for onenewentry in str(newentrycsv).split(","):
-        if not onenewentry in channellist:
-            channellist.append(onenewentry)
-    return ",".join(channellist)
-
-
-async def csv_remove(csv, newentrycsv):
-    channellist = csv.split(",")
-    for onenewentry in str(newentrycsv).split(","):
-        if onenewentry in channellist:
-            channellist.remove(onenewentry)
-    return ",".join(channellist)
-
-
-async def csv_mentionchannels(csv_str):
-    channellist = ""
-    for onechannel in csv_str.split(","):
-        channellist += "<#%s> " % (onechannel)
-    return channellist
-
-
 async def tracklist(ctx, everywhere = None):
     tracklist = await dbhandler.query("SELECT * FROM scoretrackingdata")
     if tracklist:
         for oneentry in tracklist:
             if (str(ctx.channel.id) in oneentry[2]) or (everywhere):
-                channellist = await csv_mentionchannels(oneentry[2])
+                channellist = await csvproc.csv_wrap_entries(oneentry[2])
                 await ctx.send(content='osu_id: `%s` | Username: `%s` | channels: %s' % (oneentry[0], oneentry[1], channellist))
 
 
