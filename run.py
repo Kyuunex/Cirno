@@ -13,7 +13,7 @@ from modules import scoretracking
 
 client = commands.Bot(command_prefix=',', description='Cirno teaches you how to be a bot master.')
 #client.remove_command('help')
-appversion = "b20190411"
+appversion = "b20190517"
 
 
 @client.event
@@ -25,8 +25,8 @@ async def on_ready():
     if not os.path.exists('data/maindb.sqlite3'):
         appinfo = await client.application_info()
         await dbhandler.query("CREATE TABLE config (setting, parent, value, flag)")
-        await dbhandler.query("CREATE TABLE admins (discordid, permissions)")
-        await dbhandler.query("CREATE TABLE scoretrackingdata (osuid, username, channels, contents)")
+        await dbhandler.query("CREATE TABLE admins (user_id, permissions)")
+        await dbhandler.query("CREATE TABLE score_tracking_data (osu_id, osu_username, channels, contents)")
         await dbhandler.query(["INSERT INTO admins VALUES (?, ?)", [str(appinfo.owner.id), "1"]])
 
 
@@ -36,9 +36,9 @@ async def adminlist(ctx):
 
 
 @client.command(name="makeadmin", brief="Add a user to bot admin list.", description="", pass_context=True)
-async def makeadmin(ctx, discordid: str):
+async def makeadmin(ctx, user_id: str):
     if await permissions.checkowner(ctx.message.author.id):
-        await dbhandler.query(["INSERT INTO admins VALUES (?, ?)", [str(discordid), "0"]])
+        await dbhandler.query(["INSERT INTO admins VALUES (?, ?)", [str(user_id), "0"]])
         await ctx.send(":ok_hand:")
     else:
         await ctx.send(embed=await permissions.ownererror())

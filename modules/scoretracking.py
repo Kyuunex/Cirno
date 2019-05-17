@@ -20,15 +20,18 @@ async def main(client):
     try:
         await asyncio.sleep(10)
         print(time.strftime('%X %x %Z')+' | scoretracking loop')
-        tracklist = await dbhandler.query("SELECT * FROM scoretrackingdata")
+        tracklist = await dbhandler.query("SELECT * FROM score_tracking_data")
         if tracklist:
             for oneentry in tracklist:
                 user_top_scores = await osuapi.get_user_best(oneentry[0])
                 if user_top_scores:
                     print("checking user %s" % (oneentry[1]))
-                    localdata = json.loads(oneentry[3])
-                    await dbhandler.query(["UPDATE scoretrackingdata SET contents = ? WHERE osuid = ?", [json.dumps(user_top_scores), oneentry[0]]])
-                    difference = await comparelists(localdata, user_top_scores)
+                    if oneentry[3] == "force_skip":
+                        difference = []
+                    else:
+                        localdata = json.loads(oneentry[3])
+                        difference = await comparelists(localdata, user_top_scores)
+                    await dbhandler.query(["UPDATE score_tracking_data SET contents = ? WHERE osu_id = ?", [json.dumps(user_top_scores), oneentry[0]]])
                     for newscore in difference:
                         beatmap = await osuapi.get_beatmap(newscore['beatmap_id'], "b")
                         embed = await print_play(newscore, beatmap, oneentry[1])
@@ -49,12 +52,12 @@ async def main(client):
 async def track(ctx, userid, channellist):
     user_top_scores = await osuapi.get_user_best(str(userid))
     if user_top_scores:
-        trackinfo = await dbhandler.query(["SELECT * FROM scoretrackingdata WHERE osuid = ?", [str(user_top_scores[0]['user_id'])]])
+        trackinfo = await dbhandler.query(["SELECT * FROM score_tracking_data WHERE osu_id = ?", [str(user_top_scores[0]['user_id'])]])
         if not trackinfo:
             osuprofile = await osuapi.get_user(str(userid))
             await dbhandler.query(
                 [
-                    "INSERT INTO scoretrackingdata VALUES (?,?,?,?)", 
+                    "INSERT INTO score_tracking_data VALUES (?,?,?,?)", 
                     [
                         str(user_top_scores[0]['user_id']), 
                         str(osuprofile['username']), 
@@ -65,23 +68,23 @@ async def track(ctx, userid, channellist):
             await ctx.send(content='Tracked %s' % (userid))
         else:
             newcsv = await csvproc.csv_add(trackinfo[0][2], channellist)
-            await dbhandler.query(["UPDATE scoretrackingdata SET channels = ? WHERE osuid = ?", [newcsv, str(user_top_scores[0]['user_id'])]])
+            await dbhandler.query(["UPDATE score_tracking_data SET channels = ? WHERE osu_id = ?", [newcsv, str(user_top_scores[0]['user_id'])]])
             await ctx.send(content='Tracked %s in here' % (userid))
 
 
 async def untrack(ctx, userid, channellist):
-    trackinfo = await dbhandler.query(["SELECT * FROM scoretrackingdata WHERE osuid = ?", [str(userid)]])
+    trackinfo = await dbhandler.query(["SELECT * FROM score_tracking_data WHERE osu_id = ?", [str(userid)]])
     if trackinfo:
         newcsv = await csvproc.csv_remove(trackinfo[0][2], channellist)
         if newcsv:
-            await dbhandler.query(["UPDATE scoretrackingdata SET channels = ? WHERE osuid = ?", [newcsv, str(userid)]])
+            await dbhandler.query(["UPDATE score_tracking_data SET channels = ? WHERE osu_id = ?", [newcsv, str(userid)]])
         else:
-            await dbhandler.query(["DELETE FROM scoretrackingdata WHERE osuid = ?", [str(userid)]])
+            await dbhandler.query(["DELETE FROM score_tracking_data WHERE osu_id = ?", [str(userid)]])
         await ctx.send(content='Untracked %s in here' % (userid))
 
 
 async def tracklist(ctx, everywhere = None):
-    tracklist = await dbhandler.query("SELECT * FROM scoretrackingdata")
+    tracklist = await dbhandler.query("SELECT * FROM score_tracking_data")
     if tracklist:
         for oneentry in tracklist:
             if (str(ctx.channel.id) in oneentry[2]) or (everywhere):
@@ -90,13 +93,21 @@ async def tracklist(ctx, everywhere = None):
 
 
 async def print_play(play, beatmap, display_name):
-    # Thanks Ayato_k
     try:
+        body = "**%s ☆ %s**\n" % (str(round(float(beatmap['difficultyrating']), 2)), str(beatmap['version']))
+        body += "**PP:** %s\n" % (str(play['pp']))
+        body += "**Rank:** %s\n" % (str(play['rank']))
+        body += "**Accuracy:** %s\n" % (str(await compute_acc(str(play['countmiss']), str(play['count50']), str(play['count100']), str(play['count300'])))+" %")
+        body += "**Score:** %s\n" % (str(play['score']))
+        body += "**Combo:** %s/%s\n" % (str(play['maxcombo']), str(beatmap['max_combo']))
+        body += "**Mods:** %s\n" % (str(await get_mods(int(play['enabled_mods']))))
+        body += "**300x/100x/50x/0x:** %s/%s/%s/%s\n" % (str(play['count300']), str(play['count100']), str(play['count50']), str(play['countmiss']))
+        body += "**Date:** %s\n" % (str(play['date']))
         embed = discord.Embed(
             title=str(beatmap['title']), 
-            description=str(beatmap['version']), 
+            description=body, 
             url='https://osu.ppy.sh/beatmapsets/%s' % (str(beatmap['beatmapset_id'])), 
-            color=0xaee9f3
+            color=await compute_color(play, beatmap)
         )
         embed.set_author(
             name="%s just made a new top play on:" % (display_name),
@@ -106,49 +117,9 @@ async def print_play(play, beatmap, display_name):
         embed.set_thumbnail(
             url="https://b.ppy.sh/thumb/%sl.jpg" % (str(beatmap['beatmapset_id']))
         )
-        embed.add_field(
-            name='PP', 
-            value=str(play['pp']), 
-            inline=True
-        )
-        embed.add_field(
-            name='Rank', 
-            value=str(play['rank']), 
-            inline=True
-        )
-        embed.add_field(
-            name='Accuracy', 
-            value=str(await compute_acc(str(play['countmiss']), str(play['count50']), str(play['count100']), str(play['count300'])))+" %",
-            inline=True
-        )
-        embed.add_field(
-            name='Score', 
-            value=str(play['score']), 
-            inline=True
-        )
-        embed.add_field(
-            name='Combo', 
-            value='%s/%s' % (str(play['maxcombo']), str(beatmap['max_combo'])), 
-            inline=True
-        )
-        embed.add_field(
-            name='Mods', 
-            value=str(await get_mods(int(play['enabled_mods']))), 
-            inline=True
-        )
-        embed.add_field(
-            name='Stars', 
-            value="%s ☆" % (str(round(float(beatmap['difficultyrating']), 2))), 
-            inline=True
-        )
-        embed.add_field(
-            name='Miss', 
-            value=str(play['countmiss']), 
-            inline=True
-        )
         embed.set_footer(
-            text=str(play['date']), 
-            icon_url='https://raw.githubusercontent.com/ppy/osu-resources/51f2b9b37f38cd349a3dd728a78f8fffcb3a54f5/osu.Game.Resources/Textures/Menu/logo.png'
+            text="Made by Kyuunex", 
+            icon_url='https://avatars0.githubusercontent.com/u/5400432'
         )
         return embed
     except Exception as e:
@@ -156,6 +127,30 @@ async def print_play(play, beatmap, display_name):
         print("in scoretracking.print_play")
         print(e)
         return None
+
+
+async def compute_color(play, beatmap):
+    sr = round(float(beatmap['difficultyrating']), 2)
+    if sr <= 1:
+        return 0x00ff00
+    elif sr > 1 and sr <= 2:
+        return 0xccff33
+    elif sr > 2 and sr <= 3:
+        return 0xffff00
+    elif sr > 3 and sr <= 4:
+        return 0xff9900
+    elif sr > 4 and sr <= 4.5:
+        return 0xff6600
+    elif sr > 4.5 and sr <= 5:
+        return 0xff0066
+    elif sr > 5 and sr <= 5.5:
+        return 0xcc00ff
+    elif sr > 5.5 and sr <= 6:
+        return 0x9933ff
+    elif sr > 6 and sr <= 6.5:
+        return 0x3333cc
+    elif sr > 6.5:
+        return 0x003366
 
 
 async def compute_acc(cmiss, c50, c100, c300):
