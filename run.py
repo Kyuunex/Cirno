@@ -44,7 +44,7 @@ async def makeadmin(ctx, user_id: str):
         await ctx.send(embed=await permissions.ownererror())
 
 
-@client.command(name="restart", brief="Restart the bot.", description="", pass_context=True)
+@client.command(name="restart", brief="Restart the bot", description="", pass_context=True)
 async def restart(ctx):
     if await permissions.check(ctx.message.author.id):
         await ctx.send("Restarting")
@@ -53,10 +53,10 @@ async def restart(ctx):
         await ctx.send(embed=await permissions.error())
 
 
-@client.command(name="gitpull", brief="Update the bot.", description="Grabs the latest version from GitHub.", pass_context=True)
-async def gitpull(ctx):
+@client.command(name="update", brief="Update the bot", description="it just does git pull", pass_context=True)
+async def update(ctx):
     if await permissions.check(ctx.message.author.id):
-        await ctx.send("Fetching the latest version from the repository and updating from version %s" % (appversion))
+        await ctx.send("Updating.")
         os.system('git pull')
         quit()
         # exit()
