@@ -69,7 +69,7 @@ async def track(channel, user_id, gamemode):
             if not db.query(["SELECT score_id FROM score_tracking_posted_scores WHERE score_id = ?", [str(score.id)]]):
                 db.query(["INSERT INTO score_tracking_posted_scores VALUES (?, ?)", [str(user.id), str(score.id)]])
 
-        if not db.query(["SELECT * FROM score_tracking_channels WHERE channel_id = ? AND gamemode = ?", [str(channel.id), str(gamemode)]]):
+        if not db.query(["SELECT * FROM score_tracking_channels WHERE channel_id = ? AND gamemode = ? AND osu_id = ?", [str(channel.id), str(gamemode), str(user.id)]]):
             db.query(["INSERT INTO score_tracking_channels VALUES (?, ?, ?)", [str(user.id), str(channel.id), str(gamemode)]])
             await channel.send(content='Tracked `%s` in this channel with gamemode %s' % (user.name, gamemode))
         else:
