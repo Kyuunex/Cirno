@@ -16,7 +16,7 @@ from modules.connections import bot_token as bot_token
 
 client = commands.Bot(command_prefix=',', description='Cirno teaches you how to be a bot master.')
 #client.remove_command('help')
-appversion = "b20190728"
+appversion = "b20190806"
 
 if not os.path.exists(database_file):
     db.query("CREATE TABLE config (setting, parent, value, flag)")
