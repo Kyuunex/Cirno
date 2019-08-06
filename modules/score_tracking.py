@@ -7,11 +7,12 @@ from modules.connections import osu as osu
 async def main(client):
     try:
         await asyncio.sleep(10)
-        print(time.strftime('%X %x %Z')+' | scoretracking loop')
         score_tracklist = db.query("SELECT * FROM score_tracking_tracklist")
         if score_tracklist:
+            print(time.strftime('%X %x %Z')+' | started checking scores')
             for one_user in score_tracklist:
                 await checking_process(client, one_user)
+            print(time.strftime('%X %x %Z')+' | finished checking scores')
         await asyncio.sleep(1200)
     except Exception as e:
         print(time.strftime('%X %x %Z'))

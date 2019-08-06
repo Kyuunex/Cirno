@@ -1,6 +1,6 @@
 @echo off
 title Cirno
 :loop
-python run.py
+python cirno.py
 goto loop
 pause
