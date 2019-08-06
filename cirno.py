@@ -8,7 +8,7 @@ import os
 from modules import permissions
 from osuembed import osuembed
 from modules import db
-from modules import score_tracking
+from modules import scoretracking
 
 from modules.connections import osu as osu
 from modules.connections import database_file as database_file
@@ -21,9 +21,9 @@ appversion = "b20190806"
 if not os.path.exists(database_file):
     db.query("CREATE TABLE config (setting, parent, value, flag)")
     db.query("CREATE TABLE admins (user_id, permissions)")
-    db.query("CREATE TABLE score_tracking_tracklist (osu_id, osu_username)")
-    db.query("CREATE TABLE score_tracking_channels (osu_id, channel_id, gamemode)")
-    db.query("CREATE TABLE score_tracking_posted_scores (osu_id, score_id)")
+    db.query("CREATE TABLE scoretracking_tracklist (osu_id, osu_username)")
+    db.query("CREATE TABLE scoretracking_channels (osu_id, channel_id, gamemode)")
+    db.query("CREATE TABLE scoretracking_history (osu_id, score_id)")
 
 @client.event
 async def on_ready():
@@ -106,7 +106,7 @@ async def user(ctx, *, username):
 @client.command(name="track", brief="Start tracking user's scores.", description="", pass_context=True)
 async def scoretrack(ctx, user_id, gamemode = "0"):
     if permissions.check(ctx.message.author.id):
-        await score_tracking.track(ctx.channel, user_id, gamemode)
+        await scoretracking.track(ctx.channel, user_id, gamemode)
     else:
         await ctx.send(embed=permissions.error())
 
@@ -114,7 +114,7 @@ async def scoretrack(ctx, user_id, gamemode = "0"):
 @client.command(name="untrack", brief="Stop tracking user's scores.", description="", pass_context=True)
 async def scoreuntrack(ctx, user_id, gamemode = "0"):
     if permissions.check(ctx.message.author.id):
-        await score_tracking.untrack(ctx.channel, user_id, gamemode)
+        await scoretracking.untrack(ctx.channel, user_id, gamemode)
     else:
         await ctx.send(embed=permissions.error())
 
@@ -122,15 +122,15 @@ async def scoreuntrack(ctx, user_id, gamemode = "0"):
 @client.command(name="tracklist", brief="Show a list of all users being tracked and where.", description="", pass_context=True)
 async def scoretracklist(ctx, everywhere = None):
     if permissions.check(ctx.message.author.id):
-        await score_tracking.print_tracklist(ctx.channel, everywhere)
+        await scoretracking.print_tracklist(ctx.channel, everywhere)
     else:
         await ctx.send(embed=permissions.error())
 
 
-async def score_tracking_background_loop():
+async def scoretracking_background_loop():
     await client.wait_until_ready()
     while not client.is_closed():
-        await score_tracking.main(client)
+        await scoretracking.main(client)
 
-client.loop.create_task(score_tracking_background_loop())
+client.loop.create_task(scoretracking_background_loop())
 client.run(bot_token)
