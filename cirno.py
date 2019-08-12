@@ -16,7 +16,7 @@ from modules.connections import bot_token as bot_token
 
 client = commands.Bot(command_prefix=',', description='Cirno teaches you how to be a bot master.')
 #client.remove_command('help')
-appversion = "b20190806"
+appversion = "b20190812"
 
 if not os.path.exists(database_file):
     db.query("CREATE TABLE config (setting, parent, value, flag)")
@@ -37,18 +37,18 @@ async def on_ready():
         print("Added %s to admin list" % (appinfo.owner.name))
 
 
-@client.command(name="adminlist", brief="Show bot admin list.", description="", pass_context=True)
+@client.command(name="adminlist", brief="Show bot admin list", description="", pass_context=True)
 async def adminlist(ctx):
-    await ctx.send(embed=permissions.adminlist())
+    await ctx.send(embed=permissions.get_admin_list())
 
 
-@client.command(name="makeadmin", brief="Add a user to bot admin list.", description="", pass_context=True)
+@client.command(name="makeadmin", brief="Add a user to bot admin list", description="", pass_context=True)
 async def makeadmin(ctx, user_id: str):
-    if permissions.checkowner(ctx.message.author.id):
+    if permissions.check_owner(ctx.message.author.id):
         db.query(["INSERT INTO admins VALUES (?, ?)", [str(user_id), "0"]])
         await ctx.send(":ok_hand:")
     else:
-        await ctx.send(embed=permissions.ownererror())
+        await ctx.send(embed=permissions.error_owner())
 
 
 @client.command(name="restart", brief="Restart the bot", description="", pass_context=True)
@@ -70,30 +70,27 @@ async def update(ctx):
         await ctx.send(embed=permissions.error())
 
 
-@client.command(name="sql", brief="Executre an SQL query.", description="", pass_context=True)
+@client.command(name="sql", brief="Executre an SQL query", description="", pass_context=True)
 async def sql(ctx, *, query):
-    if permissions.checkowner(ctx.message.author.id):
+    if permissions.check_owner(ctx.message.author.id):
         if len(query) > 0:
             response = db.query(query)
             await ctx.send(response)
     else:
-        await ctx.send(embed=permissions.ownererror())
+        await ctx.send(embed=permissions.error_owner())
 
 
-@client.command(name="mapset", brief="Show mapset info.", description="", pass_context=True)
-async def mapset(ctx, mapsetid: str, text: str = None):
-    if permissions.check(ctx.message.author.id):
-        result = await osu.get_beatmapset(s=mapsetid) 
-        embed = await osuembed.beatmapset(result)
-        if embed:
-            await ctx.send(content=text, embed=embed)
-        else:
-            await ctx.send(content='`No mapset found with that ID`')
+@client.command(name="mapset", brief="Show mapset info", description="", pass_context=True)
+async def mapset(ctx, mapset_id: str):
+    result = await osu.get_beatmapset(s=mapset_id)
+    embed = await osuembed.beatmapset(result)
+    if embed:
+        await ctx.send(embed=embed)
     else:
-        await ctx.send(embed=permissions.error())
+        await ctx.send(content='`No mapset found with that ID`')
 
 
-@client.command(name="user", brief="Show osu user info.", description="", pass_context=True)
+@client.command(name="user", brief="Show osu user info", description="", pass_context=True)
 async def user(ctx, *, username):
     result = await osu.get_user(u=username)
     embed = await osuembed.user(result)
@@ -103,7 +100,7 @@ async def user(ctx, *, username):
         await ctx.send(content='`No user found with that username`')
 
 
-@client.command(name="track", brief="Start tracking user's scores.", description="", pass_context=True)
+@client.command(name="track", brief="Start tracking user's scores", description="0 = osu!, 1 = Taiko, 2 = CtB, 3 = osu!mania", pass_context=True)
 async def scoretrack(ctx, user_id, gamemode = "0"):
     if permissions.check(ctx.message.author.id):
         await scoretracking.track(ctx.channel, user_id, gamemode)
@@ -111,7 +108,7 @@ async def scoretrack(ctx, user_id, gamemode = "0"):
         await ctx.send(embed=permissions.error())
 
 
-@client.command(name="untrack", brief="Stop tracking user's scores.", description="", pass_context=True)
+@client.command(name="untrack", brief="Stop tracking user's scores", description="", pass_context=True)
 async def scoreuntrack(ctx, user_id, gamemode = "0"):
     if permissions.check(ctx.message.author.id):
         await scoretracking.untrack(ctx.channel, user_id, gamemode)
@@ -119,7 +116,7 @@ async def scoreuntrack(ctx, user_id, gamemode = "0"):
         await ctx.send(embed=permissions.error())
 
 
-@client.command(name="tracklist", brief="Show a list of all users being tracked and where.", description="", pass_context=True)
+@client.command(name="tracklist", brief="Show a list of all users being tracked and where", description="", pass_context=True)
 async def scoretracklist(ctx, everywhere = None):
     if permissions.check(ctx.message.author.id):
         await scoretracking.print_tracklist(ctx.channel, everywhere)
