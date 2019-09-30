@@ -13,6 +13,13 @@ command_prefix = ','
 appversion = "a20190930-very-very-experimental"
 client = commands.Bot(command_prefix=command_prefix, description='Cirno %s' % (appversion))
 
+if not os.path.exists(database_file):
+    db.query("CREATE TABLE config (setting, parent, value, flag)")
+    db.query("CREATE TABLE admins (user_id, permissions)")
+    db.query("CREATE TABLE scoretracking_tracklist (osu_id, osu_username)")
+    db.query("CREATE TABLE scoretracking_channels (osu_id, channel_id, gamemode)")
+    db.query("CREATE TABLE scoretracking_history (osu_id, score_id)")
+
 initial_extensions = [
     'cogs.BotManagement', 
     'cogs.ScoreTracking', 
@@ -24,13 +31,6 @@ if __name__ == '__main__':
             client.load_extension(extension)
         except Exception as e:
             print(e)
-
-if not os.path.exists(database_file):
-    db.query("CREATE TABLE config (setting, parent, value, flag)")
-    db.query("CREATE TABLE admins (user_id, permissions)")
-    db.query("CREATE TABLE scoretracking_tracklist (osu_id, osu_username)")
-    db.query("CREATE TABLE scoretracking_channels (osu_id, channel_id, gamemode)")
-    db.query("CREATE TABLE scoretracking_history (osu_id, score_id)")
 
 @client.event
 async def on_ready():

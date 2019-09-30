@@ -66,6 +66,7 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
             await ctx.send(embed=permissions.error())
 
     async def scoretracking_background_loop(self):
+        print("Score tracking Loop launched!")
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
             try:
