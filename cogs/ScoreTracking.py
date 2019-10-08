@@ -16,7 +16,7 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
     async def track(self, ctx, user_id, gamemode = "0"):
         if permissions.check(ctx.message.author.id):
             channel = ctx.channel
-            user_top_scores = await osu.get_user_best(u=user_id, limit="15", m=str(gamemode))
+            user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
             user = await osu.get_user(u=user_id)
             if user_top_scores:
                 if not db.query(["SELECT * FROM scoretracking_tracklist WHERE osu_id = ?", [str(user.id)]]):
@@ -107,7 +107,7 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
         channel_list_gamemode = db.query(["SELECT channel_id FROM scoretracking_channels WHERE osu_id = ? AND gamemode = ?", [str(user_id), str(gamemode)]])
         if channel_list_gamemode:
             print("Currently checking %s on gamemode %s" % (user_name, gamemode))
-            user_top_scores = await osu.get_user_best(u=user_id, limit="15", m=str(gamemode))
+            user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
             if user_top_scores:
                 for score in user_top_scores:
                     if not db.query(["SELECT score_id FROM scoretracking_history WHERE score_id = ?", [str(score.id)]]):
