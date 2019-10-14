@@ -24,20 +24,20 @@ class BotManagement(commands.Cog, name="Bot Management commands"):
 
     @commands.command(name="restart", brief="Restart the bot", description="", pass_context=True)
     async def restart(self, ctx):
-        if permissions.check(ctx.message.author.id):
+        if permissions.check_owner(ctx.message.author.id):
             await ctx.send("Restarting")
             quit()
         else:
-            await ctx.send(embed=permissions.error())
+            await ctx.send(embed=permissions.error_owner())
 
     @commands.command(name="update", brief="Update the bot", description="it just does git pull", pass_context=True)
     async def update(self, ctx):
-        if permissions.check(ctx.message.author.id):
+        if permissions.check_owner(ctx.message.author.id):
             await ctx.send("Updating.")
             os.system('git pull')
             quit()
         else:
-            await ctx.send(embed=permissions.error())
+            await ctx.send(embed=permissions.error_owner())
 
     @commands.command(name="sql", brief="Executre an SQL query", description="", pass_context=True)
     async def sql(self, ctx, *, query):
