@@ -13,57 +13,51 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
         self.bot.loop.create_task(self.scoretracking_background_loop())
 
     @commands.command(name="track", brief="Start tracking user's scores", description="0 = osu!, 1 = Taiko, 2 = CtB, 3 = osu!mania", pass_context=True)
+    @commands.check(permissions.is_admin)
     async def track(self, ctx, user_id, gamemode = "0"):
-        if permissions.check(ctx.message.author.id):
-            channel = ctx.channel
-            user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
-            user = await osu.get_user(u=user_id)
-            if user_top_scores:
-                if not db.query(["SELECT * FROM scoretracking_tracklist WHERE osu_id = ?", [str(user.id)]]):
-                    db.query(["INSERT INTO scoretracking_tracklist VALUES (?,?)", [str(user.id), str(user.name)]])
+        channel = ctx.channel
+        user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
+        user = await osu.get_user(u=user_id)
+        if user_top_scores:
+            if not db.query(["SELECT * FROM scoretracking_tracklist WHERE osu_id = ?", [str(user.id)]]):
+                db.query(["INSERT INTO scoretracking_tracklist VALUES (?,?)", [str(user.id), str(user.name)]])
 
-                for score in user_top_scores:
-                    if not db.query(["SELECT score_id FROM scoretracking_history WHERE score_id = ?", [str(score.id)]]):
-                        db.query(["INSERT INTO scoretracking_history VALUES (?, ?)", [str(user.id), str(score.id)]])
+            for score in user_top_scores:
+                if not db.query(["SELECT score_id FROM scoretracking_history WHERE score_id = ?", [str(score.id)]]):
+                    db.query(["INSERT INTO scoretracking_history VALUES (?, ?)", [str(user.id), str(score.id)]])
 
-                if not db.query(["SELECT * FROM scoretracking_channels WHERE channel_id = ? AND gamemode = ? AND osu_id = ?", [str(channel.id), str(gamemode), str(user.id)]]):
-                    db.query(["INSERT INTO scoretracking_channels VALUES (?, ?, ?)", [str(user.id), str(channel.id), str(gamemode)]])
-                    await channel.send(content='Tracked `%s` in this channel with gamemode %s' % (user.name, gamemode))
-                else:
-                    await channel.send(content='User `%s` is already tracked in this channel' % (user.name))
-        else:
-            await ctx.send(embed=permissions.error())
+            if not db.query(["SELECT * FROM scoretracking_channels WHERE channel_id = ? AND gamemode = ? AND osu_id = ?", [str(channel.id), str(gamemode), str(user.id)]]):
+                db.query(["INSERT INTO scoretracking_channels VALUES (?, ?, ?)", [str(user.id), str(channel.id), str(gamemode)]])
+                await channel.send(content='Tracked `%s` in this channel with gamemode %s' % (user.name, gamemode))
+            else:
+                await channel.send(content='User `%s` is already tracked in this channel' % (user.name))
 
     @commands.command(name="untrack", brief="Stop tracking user's scores", description="", pass_context=True)
+    @commands.check(permissions.is_admin)
     async def untrack(self, ctx, user_id, gamemode = "0"):
-        if permissions.check(ctx.message.author.id):
-            channel = ctx.channel
-            user = await osu.get_user(u=user_id)
-            if user:
-                user_id = user.id
-                user_name = user.name
-            else:
-                user_name = user_id
-            db.query(["DELETE FROM scoretracking_channels WHERE osu_id = ? AND channel_id = ? AND gamemode = ?", [str(user_id), str(channel.id), str(gamemode)]])
-            await channel.send(content='`%s` is no longer tracked in this channel with gamemode %s' % (user_name, gamemode))
+        channel = ctx.channel
+        user = await osu.get_user(u=user_id)
+        if user:
+            user_id = user.id
+            user_name = user.name
         else:
-            await ctx.send(embed=permissions.error())
+            user_name = user_id
+        db.query(["DELETE FROM scoretracking_channels WHERE osu_id = ? AND channel_id = ? AND gamemode = ?", [str(user_id), str(channel.id), str(gamemode)]])
+        await channel.send(content='`%s` is no longer tracked in this channel with gamemode %s' % (user_name, gamemode))
 
     @commands.command(name="tracklist", brief="Show a list of all users being tracked and where", description="", pass_context=True)
+    @commands.check(permissions.is_admin)
     async def tracklist(self, ctx, everywhere = None):
-        if permissions.check(ctx.message.author.id):
-            channel = ctx.channel
-            tracklist = db.query("SELECT * FROM scoretracking_tracklist")
-            if tracklist:
-                for one_entry in tracklist:
-                    destination_list = db.query(["SELECT channel_id, gamemode FROM scoretracking_channels WHERE osu_id = ?", [str(one_entry[0])]])
-                    destination_list_str = ""
-                    for destination_id in destination_list:
-                        destination_list_str += ("<#%s>:%s " % (str(destination_id[0]), str(destination_id[1])))
-                    if (str(channel.id) in destination_list_str) or (everywhere):
-                        await channel.send(content='osu_id: `%s` | Username: `%s` | channels: %s' % (one_entry[0], one_entry[1], destination_list_str))
-        else:
-            await ctx.send(embed=permissions.error())
+        channel = ctx.channel
+        tracklist = db.query("SELECT * FROM scoretracking_tracklist")
+        if tracklist:
+            for one_entry in tracklist:
+                destination_list = db.query(["SELECT channel_id, gamemode FROM scoretracking_channels WHERE osu_id = ?", [str(one_entry[0])]])
+                destination_list_str = ""
+                for destination_id in destination_list:
+                    destination_list_str += ("<#%s>:%s " % (str(destination_id[0]), str(destination_id[1])))
+                if (str(channel.id) in destination_list_str) or (everywhere):
+                    await channel.send(content='osu_id: `%s` | Username: `%s` | channels: %s' % (one_entry[0], one_entry[1], destination_list_str))
 
     async def scoretracking_background_loop(self):
         print("Score tracking Loop launched!")
