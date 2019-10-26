@@ -10,8 +10,10 @@ from modules.connections import database_file as database_file
 from modules.connections import bot_token as bot_token
 
 command_prefix = ','
-appversion = "s20191017"
-client = commands.Bot(command_prefix=command_prefix, description='Cirno %s' % (appversion))
+appversion = "s20191017.2"
+client = commands.Bot(command_prefix=command_prefix, 
+                      description='Cirno %s' % (appversion),
+                      activity=discord.Game("Version %s" % appversion))
 
 if not os.path.exists(database_file):
     db.query("CREATE TABLE config (setting, parent, value, flag)")
