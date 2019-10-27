@@ -10,7 +10,7 @@ from modules.connections import database_file as database_file
 from modules.connections import bot_token as bot_token
 
 command_prefix = ','
-appversion = "s20191017.2"
+appversion = "s20191027"
 client = commands.Bot(command_prefix=command_prefix, 
                       description='Cirno %s' % (appversion))
 
