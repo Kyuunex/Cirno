@@ -12,7 +12,7 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
         self.bot = bot
         self.bot.loop.create_task(self.scoretracking_background_loop())
 
-    @commands.command(name="track", brief="Start tracking user's scores", description="0 = osu!, 1 = Taiko, 2 = CtB, 3 = osu!mania", pass_context=True)
+    @commands.command(name="track", brief="Start tracking user's scores", description="0 = osu!, 1 = Taiko, 2 = CtB, 3 = osu!mania")
     @commands.check(permissions.is_admin)
     async def track(self, ctx, user_id, gamemode = "0"):
         channel = ctx.channel
@@ -32,7 +32,7 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
             else:
                 await channel.send(content='User `%s` is already tracked in this channel' % (user.name))
 
-    @commands.command(name="untrack", brief="Stop tracking user's scores", description="", pass_context=True)
+    @commands.command(name="untrack", brief="Stop tracking user's scores", description="")
     @commands.check(permissions.is_admin)
     async def untrack(self, ctx, user_id, gamemode = "0"):
         channel = ctx.channel
@@ -45,7 +45,7 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
         db.query(["DELETE FROM scoretracking_channels WHERE osu_id = ? AND channel_id = ? AND gamemode = ?", [str(user_id), str(channel.id), str(gamemode)]])
         await channel.send(content='`%s` is no longer tracked in this channel with gamemode %s' % (user_name, gamemode))
 
-    @commands.command(name="tracklist", brief="Show a list of all users being tracked and where", description="", pass_context=True)
+    @commands.command(name="tracklist", brief="Show a list of all users being tracked and where", description="")
     @commands.check(permissions.is_admin)
     async def tracklist(self, ctx, everywhere = None):
         channel = ctx.channel
