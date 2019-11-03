@@ -10,9 +10,9 @@ from modules.connections import database_file as database_file
 from modules.connections import bot_token as bot_token
 
 command_prefix = ','
-appversion = "s20191031"
-client = commands.Bot(command_prefix=command_prefix, 
-                      description='Cirno %s' % (appversion))
+app_version = "s20191103"
+client = commands.Bot(command_prefix=command_prefix,
+                      description='Cirno %s' % app_version)
 
 if not os.path.exists(database_file):
     db.query("CREATE TABLE config (setting, parent, value, flag)")
@@ -22,8 +22,8 @@ if not os.path.exists(database_file):
     db.query("CREATE TABLE scoretracking_history (osu_id, score_id)")
 
 initial_extensions = [
-    'cogs.BotManagement', 
-    'cogs.ScoreTracking', 
+    'cogs.BotManagement',
+    'cogs.ScoreTracking',
 ]
 
 if __name__ == '__main__':
@@ -33,6 +33,7 @@ if __name__ == '__main__':
         except Exception as e:
             print(e)
 
+
 @client.event
 async def on_ready():
     print('Logged in as')
@@ -40,8 +41,9 @@ async def on_ready():
     print(client.user.id)
     print('------')
     if not db.query("SELECT * FROM admins"):
-        appinfo = await client.application_info()
-        db.query(["INSERT INTO admins VALUES (?, ?)", [str(appinfo.owner.id), "1"]])
-        print("Added %s to admin list" % (appinfo.owner.name))
+        app_info = await client.application_info()
+        db.query(["INSERT INTO admins VALUES (?, ?)", [str(app_info.owner.id), "1"]])
+        print("Added %s to admin list" % app_info.owner.name)
+
 
 client.run(bot_token)
