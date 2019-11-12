@@ -43,16 +43,17 @@ class BotManagement(commands.Cog, name="Bot Management commands"):
 
     @commands.command(name="leave_guild", brief="Leave the current guild", description="")
     @commands.check(permissions.is_owner)
+    @commands.guild_only()
     async def leave_guild(self, ctx):
-        try:
-            await ctx.guild.leave()
-        except Exception as e:
-            await ctx.send(e)
+        await ctx.guild.leave()
 
     @commands.command(name="echo", brief="Echo a string", description="")
     @commands.check(permissions.is_owner)
     async def echo(self, ctx, *, string):
-        await ctx.message.delete()
+        try:
+            await ctx.message.delete()
+        except:
+            pass
         await ctx.send(string)
 
     @commands.command(name="set_activity", brief="Set an activity", description="")
@@ -60,6 +61,7 @@ class BotManagement(commands.Cog, name="Bot Management commands"):
     async def set_activity(self, ctx, *, string):
         activity = discord.Game(string)
         await self.bot.change_presence(activity=activity)
+        await ctx.send(":ok_hand:")
 
     @commands.command(name="config", brief="Insert a config in db", description="")
     @commands.check(permissions.is_owner)
@@ -69,6 +71,7 @@ class BotManagement(commands.Cog, name="Bot Management commands"):
 
     @commands.command(name="db_dump", brief="Perform a database dump", description="")
     @commands.check(permissions.is_admin)
+    @commands.guild_only()
     async def db_dump(self, ctx):
         if (str(ctx.channel.id),) in self.db_dump_channel_list:
             await ctx.send(file=discord.File(database_file))
