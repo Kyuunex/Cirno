@@ -7,7 +7,7 @@ from modules import permissions
 from modules.connections import osu as osu
 
 
-class ScoreTracking(commands.Cog, name="ScoreTracking"):
+class ScoreTracking(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.loop.create_task(self.scoretracking_background_loop())
@@ -135,15 +135,6 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
         ]
         return gamemodes[int(mode_id)]
 
-    def get_gamemode_icon(self, mode_id):
-        gamemodes = [
-            "https://raw.githubusercontent.com/ppy/osu-web/master/public/images/badges/user-achievements/osu-plays-5000.png",
-            "https://raw.githubusercontent.com/ppy/osu-web/master/public/images/badges/user-achievements/taiko-hits-30000.png",
-            "https://raw.githubusercontent.com/ppy/osu-web/master/public/images/badges/user-achievements/fruits-hits-20000.png",
-            "https://raw.githubusercontent.com/ppy/osu-web/master/public/images/badges/user-achievements/mania-hits-40000.png",
-        ]
-        return gamemodes[int(mode_id)]
-
     async def print_play(self, score, beatmap, display_name, gamemode):
         try:
             body = "**%s ☆ %s**\n" % (str(round(float(beatmap.difficultyrating), 2)), str(beatmap.version))
@@ -172,7 +163,6 @@ class ScoreTracking(commands.Cog, name="ScoreTracking"):
             )
             embed.set_footer(
                 text=self.get_gamemode(gamemode),
-                icon_url=self.get_gamemode_icon(gamemode)
             )
             return embed
         except Exception as e:
