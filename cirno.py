@@ -9,10 +9,10 @@ from modules import db
 from modules.connections import database_file as database_file
 from modules.connections import bot_token as bot_token
 
-command_prefix = ','
-app_version = "s20191103.2"
+command_prefix = ","
+app_version = "s20191103.3"
 client = commands.Bot(command_prefix=command_prefix,
-                      description='Cirno %s' % app_version)
+                      description="Cirno %s" % app_version)
 
 if not os.path.exists(database_file):
     db.query("CREATE TABLE config (setting, parent, value, flag)")
@@ -22,11 +22,11 @@ if not os.path.exists(database_file):
     db.query("CREATE TABLE scoretracking_history (osu_id, score_id)")
 
 initial_extensions = [
-    'cogs.BotManagement',
-    'cogs.ScoreTracking',
+    "cogs.BotManagement",
+    "cogs.ScoreTracking",
 ]
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     for extension in initial_extensions:
         try:
             client.load_extension(extension)
@@ -36,10 +36,10 @@ if __name__ == '__main__':
 
 @client.event
 async def on_ready():
-    print('Logged in as')
+    print("Logged in as")
     print(client.user.name)
     print(client.user.id)
-    print('------')
+    print("------")
     if not db.query("SELECT * FROM admins"):
         app_info = await client.application_info()
         db.query(["INSERT INTO admins VALUES (?, ?)", [str(app_info.owner.id), "1"]])

@@ -33,9 +33,9 @@ class ScoreTracking(commands.Cog):
                      [str(channel.id), str(gamemode), str(user.id)]]):
                 db.query(["INSERT INTO scoretracking_channels VALUES (?, ?, ?)",
                           [str(user.id), str(channel.id), str(gamemode)]])
-                await channel.send(content='Tracked `%s` in this channel with gamemode %s' % (user.name, gamemode))
+                await channel.send(content="Tracked `%s` in this channel with gamemode %s" % (user.name, gamemode))
             else:
-                await channel.send(content='User `%s` is already tracked in this channel' % user.name)
+                await channel.send(content="User `%s` is already tracked in this channel" % user.name)
 
     @commands.command(name="untrack", brief="Stop tracking user's scores", description="")
     @commands.check(permissions.is_admin)
@@ -50,7 +50,7 @@ class ScoreTracking(commands.Cog):
         db.query(["DELETE FROM scoretracking_channels "
                   "WHERE osu_id = ? AND channel_id = ? AND gamemode = ?",
                   [str(user_id), str(channel.id), str(gamemode)]])
-        await channel.send(content='`%s` is no longer tracked in this channel with gamemode %s' % (user_name, gamemode))
+        await channel.send(content="`%s` is no longer tracked in this channel with gamemode %s" % (user_name, gamemode))
 
     @commands.command(name="tracklist", brief="Show a list of all users being tracked and where", description="")
     @commands.check(permissions.is_admin)
@@ -66,7 +66,7 @@ class ScoreTracking(commands.Cog):
                 for destination_id in destination_list:
                     destination_list_str += ("<#%s>:%s " % (str(destination_id[0]), str(destination_id[1])))
                 if (str(channel.id) in destination_list_str) or everywhere:
-                    await channel.send(content='osu_id: `%s` | Username: `%s` | channels: %s' %
+                    await channel.send(content="osu_id: `%s` | Username: `%s` | channels: %s" %
                                                (one_entry[0], one_entry[1], destination_list_str))
 
     async def scoretracking_background_loop(self):
@@ -77,13 +77,13 @@ class ScoreTracking(commands.Cog):
                 await asyncio.sleep(10)
                 score_tracklist = db.query("SELECT * FROM scoretracking_tracklist")
                 if score_tracklist:
-                    print(time.strftime('%X %x %Z') + ' | started checking scores')
+                    print(time.strftime("%X %x %Z") + " | started checking scores")
                     for one_user in score_tracklist:
                         await self.checking_process(one_user)
-                    print(time.strftime('%X %x %Z') + ' | finished checking scores')
+                    print(time.strftime("%X %x %Z") + " | finished checking scores")
                 await asyncio.sleep(1200)
             except Exception as e:
-                print(time.strftime('%X %x %Z'))
+                print(time.strftime("%X %x %Z"))
                 print("in scoretracking")
                 print(e)
                 await asyncio.sleep(7200)
@@ -166,7 +166,7 @@ class ScoreTracking(commands.Cog):
             )
             return embed
         except Exception as e:
-            print(time.strftime('%X %x %Z'))
+            print(time.strftime("%X %x %Z"))
             print("in scoretracking.print_play")
             print(e)
             return None
