@@ -13,7 +13,7 @@ class ScoreTracking(commands.Cog):
         self.bot.loop.create_task(self.scoretracking_background_loop())
 
     @commands.command(name="track", brief="Start tracking user's scores",
-                      description="0 = osu!, 1 = Taiko, 2 = CtB, 3 = osu!mania")
+                      description="0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania")
     @commands.check(permissions.is_admin)
     async def track(self, ctx, user_id, gamemode="0"):
         channel = ctx.channel
@@ -33,9 +33,9 @@ class ScoreTracking(commands.Cog):
                      [str(channel.id), str(gamemode), str(user.id)]]):
                 db.query(["INSERT INTO scoretracking_channels VALUES (?, ?, ?)",
                           [str(user.id), str(channel.id), str(gamemode)]])
-                await channel.send(content="Tracked `%s` in this channel with gamemode %s" % (user.name, gamemode))
+                await channel.send(content=f"Tracked `{user.name}` in this channel with gamemode {gamemode}")
             else:
-                await channel.send(content="User `%s` is already tracked in this channel" % user.name)
+                await channel.send(content=f"User `{user.name}` is already tracked in this channel")
 
     @commands.command(name="untrack", brief="Stop tracking user's scores", description="")
     @commands.check(permissions.is_admin)
@@ -50,7 +50,7 @@ class ScoreTracking(commands.Cog):
         db.query(["DELETE FROM scoretracking_channels "
                   "WHERE osu_id = ? AND channel_id = ? AND gamemode = ?",
                   [str(user_id), str(channel.id), str(gamemode)]])
-        await channel.send(content="`%s` is no longer tracked in this channel with gamemode %s" % (user_name, gamemode))
+        await channel.send(content=f"`{user_name}` is no longer tracked in this channel with gamemode {gamemode}")
 
     @commands.command(name="tracklist", brief="Show a list of all users being tracked and where", description="")
     @commands.check(permissions.is_admin)
@@ -64,10 +64,11 @@ class ScoreTracking(commands.Cog):
                                              [str(one_entry[0])]])
                 destination_list_str = ""
                 for destination_id in destination_list:
-                    destination_list_str += ("<#%s>:%s " % (str(destination_id[0]), str(destination_id[1])))
+                    destination_list_str += f"<#{destination_id[0]}>:{destination_id[1]} "
                 if (str(channel.id) in destination_list_str) or everywhere:
-                    await channel.send(content="osu_id: `%s` | Username: `%s` | channels: %s" %
-                                               (one_entry[0], one_entry[1], destination_list_str))
+                    await channel.send(f"osu_id: `{one_entry[0]}` "
+                                       f"| Username: `{one_entry[1]}` "
+                                       f"| channels: {destination_list_str}")
 
     async def scoretracking_background_loop(self):
         print("Score tracking Loop launched!")
@@ -101,7 +102,7 @@ class ScoreTracking(commands.Cog):
             await asyncio.sleep(1)
             await self.check_one_user(user_id, user_name, "3")
         else:
-            print("%s is not tracked anywhere so I am gonna delete it from all tables" % user_name)
+            print(f"{user_name} is not tracked anywhere so I am gonna delete it from all tables")
             db.query(["DELETE FROM scoretracking_channels WHERE osu_id = ?", [str(user_id)]])
             db.query(["DELETE FROM scoretracking_history WHERE osu_id = ?", [str(user_id)]])
             db.query(["DELETE FROM scoretracking_tracklist WHERE osu_id = ?", [str(user_id)]])
@@ -112,7 +113,7 @@ class ScoreTracking(commands.Cog):
                                           "WHERE osu_id = ? AND gamemode = ?",
                                           [str(user_id), str(gamemode)]])
         if channel_list_gamemode:
-            print("Currently checking %s on gamemode %s" % (user_name, gamemode))
+            print(f"Currently checking {user_name} on gamemode {gamemode}")
             user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
             if user_top_scores:
                 for score in user_top_scores:
@@ -124,39 +125,38 @@ class ScoreTracking(commands.Cog):
                             await channel.send(embed=embed)
                         db.query(["INSERT INTO scoretracking_history VALUES (?, ?)", [str(user_id), str(score.id)]])
             else:
-                print("%s | restricted " % user_id)
+                print(f"{user_id} | restricted")
 
     def get_gamemode(self, mode_id):
         gamemodes = [
             "osu!",
-            "Taiko",
-            "CtB",
+            "osu!taiko",
+            "osu!catch",
             "osu!mania",
         ]
         return gamemodes[int(mode_id)]
 
     async def print_play(self, score, beatmap, display_name, gamemode):
         try:
-            body = "**%s ☆ %s**\n" % (str(round(float(beatmap.difficultyrating), 2)), str(beatmap.version))
-            body += "**PP:** %s\n" % (str(score.pp))
-            body += "**Rank:** %s\n" % (str(score.rank))
-            body += "**Accuracy:** %s\n" % (str(score.accuracy) + " %")
-            body += "**Score:** %s\n" % (str(score.score))
-            body += "**Combo:** %s/%s\n" % (str(score.maxcombo), str(beatmap.max_combo))
-            body += "**Mods:** %s\n" % (str(score.mods))
-            body += ("**300x/100x/50x/0x:** %s/%s/%s/%s\n" %
-                     (str(score.count300), str(score.count100), str(score.count50), str(score.countmiss)))
-            body += "**Date:** %s\n" % (str(score.date))
+            body = f"**{str(round(float(beatmap.difficultyrating), 2))} ☆ {beatmap.version}**\n"
+            body += f"**PP:** {score.pp}\n"
+            body += f"**Rank:** {score.rank}\n"
+            body += f"**Accuracy:** {score.accuracy} %\n"
+            body += f"**Score:** {score.score}\n"
+            body += f"**Combo:** {score.maxcombo}/{beatmap.max_combo}\n"
+            body += f"**Mods:** {score.mods}\n"
+            body += f"**300x/100x/50x/0x:** {score.count300}/{score.count100}/{score.count50}/{score.countmiss}\n"
+            body += f"**Date:** {score.date}\n"
             embed = discord.Embed(
-                title=str(beatmap.title),
+                title=beatmap.title,
                 description=body,
                 url=beatmap.url,
                 color=self.compute_color(score, beatmap)
             )
             embed.set_author(
-                name="%s just made a new top play on:" % display_name,
-                url="https://osu.ppy.sh/users/%s" % (str(score.user_id)),
-                icon_url="https://a.ppy.sh/%s" % (str(score.user_id))
+                name=f"{display_name} just made a new top play on:",
+                url=f"https://osu.ppy.sh/users/{score.user_id}",
+                icon_url=f"https://a.ppy.sh/{score.user_id}",
             )
             embed.set_thumbnail(
                 url=beatmap.thumb
