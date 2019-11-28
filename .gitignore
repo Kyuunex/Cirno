@@ -103,8 +103,10 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# bot specific
-data
+# IDE
 .vscode
-runtest.py
 .idea
+
+# other
+data
+test.py
