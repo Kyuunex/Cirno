@@ -10,7 +10,9 @@ from modules.connections import osu as osu
 class ScoreTracking(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.bot.loop.create_task(self.scoretracking_background_loop())
+        self.bot.background_tasks.append(
+            self.bot.loop.create_task(self.scoretracking_background_loop())
+        )
 
     @commands.command(name="track", brief="Start tracking user's scores",
                       description="0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania")
