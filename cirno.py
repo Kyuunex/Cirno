@@ -28,6 +28,8 @@ class Cirno(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.background_tasks = []
+        self.app_version = app_version
+        self.description = f"Cirno {app_version}"
 
         for extension in initial_extensions:
             try:
@@ -55,6 +57,5 @@ class Cirno(commands.Bot):
             print(f"Added {app_info.owner.name} to admin list")
 
 
-client = Cirno(command_prefix=command_prefix,
-               description=f"Cirno {app_version}")
+client = Cirno(command_prefix=command_prefix)
 client.run(bot_token)
