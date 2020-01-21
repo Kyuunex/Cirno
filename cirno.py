@@ -9,7 +9,6 @@ from modules.connections import database_file as database_file
 from modules.connections import bot_token as bot_token
 
 command_prefix = ","
-app_version = "a20200104"
 
 if not os.path.exists(database_file):
     db.query("CREATE TABLE config (setting, parent, value, flag)")
@@ -28,8 +27,8 @@ class Cirno(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.background_tasks = []
-        self.app_version = app_version
-        self.description = f"Cirno {app_version}"
+        self.app_version = (open(".version", "r+").read()).rstrip()
+        self.description = f"Cirno {self.app_version}"
 
         for extension in initial_extensions:
             try:
