@@ -32,7 +32,7 @@ class Cirno(commands.Bot):
         # This prevents any task still running due to having long sleep time.
         for task in self.background_tasks:
             task.cancel()
-        
+
         # Run actual discord.py close.
         await super().close()
 
