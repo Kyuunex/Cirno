@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 
 from discord.ext import commands
-import os
 
-from modules import db
+from modules import first_run
 
-from modules.connections import database_file as database_file
 from modules.connections import bot_token as bot_token
 
-if not os.path.exists(database_file):
-    db.query("CREATE TABLE config (setting, parent, value, flag)")
-    db.query("CREATE TABLE admins (user_id, permissions)")
-    db.query("CREATE TABLE scoretracking_tracklist (osu_id, osu_username)")
-    db.query("CREATE TABLE scoretracking_channels (osu_id, channel_id, gamemode)")
-    db.query("CREATE TABLE scoretracking_history (osu_id, score_id)")
+first_run.create_tables()
 
 initial_extensions = [
     "cogs.BotManagement",
@@ -48,15 +41,7 @@ class Cirno(commands.Bot):
         print(self.user.name)
         print(self.user.id)
         print("------")
-        if not db.query("SELECT * FROM admins"):
-            app_info = await self.application_info()
-            if app_info.team:
-                for team_member in app_info.team.members:
-                    db.query(["INSERT INTO admins VALUES (?, ?)", [str(team_member.id), "1"]])
-                    print(f"Added {team_member.name} to admin list")
-            else:
-                db.query(["INSERT INTO admins VALUES (?, ?)", [str(app_info.owner.id), "1"]])
-                print(f"Added {app_info.owner.name} to admin list")
+        await first_run.add_admins(self)
 
 
 client = Cirno(command_prefix=",")
