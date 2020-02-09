@@ -4,15 +4,19 @@ import os
 
 
 async def add_admins(self):
-    if not db.query("SELECT * FROM admins"):
+    async with await self.db.execute("SELECT * FROM admins") as cursor:
+        admin_list = await cursor.fetchall()
+
+    if not admin_list:
         app_info = await self.application_info()
         if app_info.team:
             for team_member in app_info.team.members:
-                db.query(["INSERT INTO admins VALUES (?, ?)", [str(team_member.id), "1"]])
+                await self.db.execute("INSERT INTO admins VALUES (?, ?)", [str(team_member.id), "1"])
                 print(f"Added {team_member.name} to admin list")
         else:
-            db.query(["INSERT INTO admins VALUES (?, ?)", [str(app_info.owner.id), "1"]])
+            await self.db.execute("INSERT INTO admins VALUES (?, ?)", [str(app_info.owner.id), "1"])
             print(f"Added {app_info.owner.name} to admin list")
+        await self.db.commit()
 
 
 def create_tables():
