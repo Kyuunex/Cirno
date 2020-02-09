@@ -1,4 +1,4 @@
-from modules import db
+import sqlite3
 from modules.connections import database_file as database_file
 import os
 
@@ -21,8 +21,12 @@ async def add_admins(self):
 
 def create_tables():
     if not os.path.exists(database_file):
-        db.query("CREATE TABLE config (setting, parent, value, flag)")
-        db.query("CREATE TABLE admins (user_id, permissions)")
-        db.query("CREATE TABLE scoretracking_tracklist (osu_id, osu_username)")
-        db.query("CREATE TABLE scoretracking_channels (osu_id, channel_id, gamemode)")
-        db.query("CREATE TABLE scoretracking_history (osu_id, score_id)")
+        conn = sqlite3.connect(database_file)
+        c = conn.cursor()
+        c.execute("CREATE TABLE config (setting, parent, value, flag)")
+        c.execute("CREATE TABLE admins (user_id, permissions)")
+        c.execute("CREATE TABLE scoretracking_tracklist (osu_id, osu_username)")
+        c.execute("CREATE TABLE scoretracking_channels (osu_id, channel_id, gamemode)")
+        c.execute("CREATE TABLE scoretracking_history (osu_id, score_id)")
+        conn.commit()
+        conn.close()
