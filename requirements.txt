@@ -1,3 +1,4 @@
 discord.py[voice]
 git+https://github.com/Kyuunex/aioosuapi.git@v1
 git+https://github.com/Kyuunex/osudiscordpyembed.git@v1
+aiosqlite
