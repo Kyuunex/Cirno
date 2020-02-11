@@ -2,7 +2,6 @@ import asyncio
 import time
 import discord
 from discord.ext import commands
-from modules import db
 from modules import permissions
 from modules.connections import osu as osu
 
@@ -22,22 +21,33 @@ class ScoreTracking(commands.Cog):
         user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
         user = await osu.get_user(u=user_id)
         if user_top_scores:
-            if not db.query(["SELECT * FROM scoretracking_tracklist WHERE osu_id = ?", [str(user.id)]]):
-                db.query(["INSERT INTO scoretracking_tracklist VALUES (?,?)", [str(user.id), str(user.name)]])
+            async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist WHERE osu_id = ?",
+                                                 [str(user.id)]) as cursor:
+                already_tracked = await cursor.fetchall()
+            if not already_tracked:
+                await self.bot.db.execute("INSERT INTO scoretracking_tracklist VALUES (?,?)",
+                                          [str(user.id), str(user.name)])
 
             for score in user_top_scores:
-                if not db.query(["SELECT score_id FROM scoretracking_history WHERE score_id = ?", [str(score.id)]]):
-                    db.query(["INSERT INTO scoretracking_history VALUES (?, ?)", [str(user.id), str(score.id)]])
+                async with await self.bot.db.execute("SELECT score_id FROM scoretracking_history WHERE score_id = ?",
+                                                     [str(score.id)]) as cursor:
+                    score_already_in_history = await cursor.fetchall()
+                if not score_already_in_history:
+                    await self.bot.db.execute("INSERT INTO scoretracking_history VALUES (?, ?)",
+                                              [str(user.id), str(score.id)])
 
-            if not db.query(
-                    ["SELECT * FROM scoretracking_channels "
-                     "WHERE channel_id = ? AND gamemode = ? AND osu_id = ?",
-                     [str(channel.id), str(gamemode), str(user.id)]]):
-                db.query(["INSERT INTO scoretracking_channels VALUES (?, ?, ?)",
-                          [str(user.id), str(channel.id), str(gamemode)]])
+            async with await self.bot.db.execute("SELECT * FROM scoretracking_channels "
+                                                 "WHERE channel_id = ? AND gamemode = ? AND osu_id = ?",
+                                                 [str(channel.id), str(gamemode), str(user.id)]) as cursor:
+                already_tracked_gamemode = await cursor.fetchall()
+
+            if not already_tracked_gamemode:
+                await self.bot.db.execute("INSERT INTO scoretracking_channels VALUES (?, ?, ?)",
+                                          [str(user.id), str(channel.id), str(gamemode)])
                 await channel.send(content=f"Tracked `{user.name}` in this channel with gamemode {gamemode}")
             else:
                 await channel.send(content=f"User `{user.name}` is already tracked in this channel")
+            await self.bot.db.commit()
 
     @commands.command(name="untrack", brief="Stop tracking user's scores", description="")
     @commands.check(permissions.is_admin)
@@ -49,21 +59,23 @@ class ScoreTracking(commands.Cog):
             user_name = user.name
         else:
             user_name = user_id
-        db.query(["DELETE FROM scoretracking_channels "
-                  "WHERE osu_id = ? AND channel_id = ? AND gamemode = ?",
-                  [str(user_id), str(channel.id), str(gamemode)]])
+        await self.bot.db.execute("DELETE FROM scoretracking_channels "
+                                  "WHERE osu_id = ? AND channel_id = ? AND gamemode = ?",
+                                  [str(user_id), str(channel.id), str(gamemode)])
+        await self.bot.db.commit()
         await channel.send(content=f"`{user_name}` is no longer tracked in this channel with gamemode {gamemode}")
 
     @commands.command(name="tracklist", brief="Show a list of all users being tracked and where", description="")
     @commands.check(permissions.is_admin)
     async def tracklist(self, ctx, everywhere=None):
         channel = ctx.channel
-        tracklist = db.query("SELECT * FROM scoretracking_tracklist")
+        async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist") as cursor:
+            tracklist = await cursor.fetchall()
         if tracklist:
             for one_entry in tracklist:
-                destination_list = db.query(["SELECT channel_id, gamemode FROM scoretracking_channels "
-                                             "WHERE osu_id = ?",
-                                             [str(one_entry[0])]])
+                async with await self.bot.db.execute("SELECT channel_id, gamemode FROM scoretracking_channels "
+                                                     "WHERE osu_id = ?", [str(one_entry[0])]) as cursor:
+                    destination_list = await cursor.fetchall()
                 destination_list_str = ""
                 for destination_id in destination_list:
                     destination_list_str += f"<#{destination_id[0]}>:{destination_id[1]} "
@@ -78,7 +90,8 @@ class ScoreTracking(commands.Cog):
         while not self.bot.is_closed():
             try:
                 await asyncio.sleep(10)
-                score_tracklist = db.query("SELECT * FROM scoretracking_tracklist")
+                async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist") as cursor:
+                    score_tracklist = await cursor.fetchall()
                 if score_tracklist:
                     print(time.strftime("%X %x %Z") + " | started checking scores")
                     for one_user in score_tracklist:
@@ -94,7 +107,9 @@ class ScoreTracking(commands.Cog):
     async def checking_process(self, one_user):
         user_id = one_user[0]
         user_name = one_user[1]
-        channel_list = db.query(["SELECT channel_id FROM scoretracking_channels WHERE osu_id = ?", [str(user_id)]])
+        async with await self.bot.db.execute("SELECT channel_id FROM scoretracking_channels WHERE osu_id = ?",
+                                             [str(user_id)]) as cursor:
+            channel_list = await cursor.fetchall()
         if channel_list:
             await self.check_one_user(user_id, user_name, "0")
             await asyncio.sleep(1)
@@ -105,27 +120,34 @@ class ScoreTracking(commands.Cog):
             await self.check_one_user(user_id, user_name, "3")
         else:
             print(f"{user_name} is not tracked anywhere so I am gonna delete it from all tables")
-            db.query(["DELETE FROM scoretracking_channels WHERE osu_id = ?", [str(user_id)]])
-            db.query(["DELETE FROM scoretracking_history WHERE osu_id = ?", [str(user_id)]])
-            db.query(["DELETE FROM scoretracking_tracklist WHERE osu_id = ?", [str(user_id)]])
+            await self.bot.db.execute("DELETE FROM scoretracking_channels WHERE osu_id = ?", [str(user_id)])
+            await self.bot.db.execute("DELETE FROM scoretracking_history WHERE osu_id = ?", [str(user_id)])
+            await self.bot.db.execute("DELETE FROM scoretracking_tracklist WHERE osu_id = ?", [str(user_id)])
+            await self.bot.db.commit()
         await asyncio.sleep(5)
 
     async def check_one_user(self, user_id, user_name, gamemode):
-        channel_list_gamemode = db.query(["SELECT channel_id FROM scoretracking_channels "
-                                          "WHERE osu_id = ? AND gamemode = ?",
-                                          [str(user_id), str(gamemode)]])
+        async with await self.bot.db.execute("SELECT channel_id FROM scoretracking_channels "
+                                             "WHERE osu_id = ? AND gamemode = ?",
+                                             [str(user_id), str(gamemode)]) as cursor:
+            channel_list_gamemode = await cursor.fetchall()
         if channel_list_gamemode:
             print(f"Currently checking {user_name} on gamemode {gamemode}")
             user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
             if user_top_scores:
                 for score in user_top_scores:
-                    if not db.query(["SELECT score_id FROM scoretracking_history WHERE score_id = ?", [str(score.id)]]):
+                    async with await self.bot.db.execute("SELECT score_id FROM scoretracking_history "
+                                                         "WHERE score_id = ?", [str(score.id)]) as cursor:
+                        already_tracked = await cursor.fetchall()
+                    if not already_tracked:
                         beatmap = await osu.get_beatmap(b=score.beatmap_id)
                         embed = await self.print_play(score, beatmap, user_name, gamemode)
                         for channel_id in channel_list_gamemode:
                             channel = self.bot.get_channel(int(channel_id[0]))
                             await channel.send(embed=embed)
-                        db.query(["INSERT INTO scoretracking_history VALUES (?, ?)", [str(user_id), str(score.id)]])
+                        await self.bot.db.execute("INSERT INTO scoretracking_history VALUES (?, ?)",
+                                                  [str(user_id), str(score.id)])
+                        await self.bot.db.commit()
             else:
                 print(f"{user_id} | restricted")
 
