@@ -98,7 +98,9 @@ class ScoreTracking(commands.Cog):
         await self.bot.db.commit()
         await channel.send(content=f"`{user_name}` is no longer tracked in this channel with gamemode {gamemode}")
 
-    @commands.command(name="tracklist", brief="Show a list of all users being tracked and where", description="")
+    @commands.command(name="tracklist", brief="Show a list of all users being tracked and where",
+                      description="",
+                      aliases=["list"])
     @commands.check(permissions.is_admin)
     async def tracklist(self, ctx, everywhere=None):
         channel = ctx.channel
