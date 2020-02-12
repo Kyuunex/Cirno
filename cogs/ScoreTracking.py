@@ -13,11 +13,47 @@ class ScoreTracking(commands.Cog):
             self.bot.loop.create_task(self.scoretracking_background_loop())
         )
 
-    @commands.command(name="track", brief="Start tracking user's scores",
-                      description="0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania")
+    @commands.command(name="track_osu", brief="Start tracking user's osu scores", aliases=["track", "track_std"])
     @commands.check(permissions.is_admin)
-    async def track(self, ctx, user_id, gamemode="0"):
-        channel = ctx.channel
+    async def track_osu(self, ctx, *, user_id):
+        await self.track(ctx.channel, user_id, "0")
+
+    @commands.command(name="track_taiko", brief="Start tracking user's taiko scores")
+    @commands.check(permissions.is_admin)
+    async def track_taiko(self, ctx, *, user_id):
+        await self.track(ctx.channel, user_id, "1")
+
+    @commands.command(name="track_catch", brief="Start tracking user's catch scores", aliases=["track_ctb"])
+    @commands.check(permissions.is_admin)
+    async def track_catch(self, ctx, *, user_id):
+        await self.track(ctx.channel, user_id, "2")
+
+    @commands.command(name="track_mania", brief="Start tracking user's mania scores")
+    @commands.check(permissions.is_admin)
+    async def track_mania(self, ctx, *, user_id):
+        await self.track(ctx.channel, user_id, "3")
+
+    @commands.command(name="untrack_osu", brief="Stop tracking user's osu scores", aliases=["untrack", "untrack_std"])
+    @commands.check(permissions.is_admin)
+    async def untrack_osu(self, ctx, *, user_id):
+        await self.untrack(ctx.channel, user_id, "0")
+
+    @commands.command(name="untrack_taiko", brief="Stop tracking user's taiko scores")
+    @commands.check(permissions.is_admin)
+    async def untrack_taiko(self, ctx, *, user_id):
+        await self.untrack(ctx.channel, user_id, "1")
+
+    @commands.command(name="untrack_catch", brief="Stop tracking user's catch scores", aliases=["untrack_ctb"])
+    @commands.check(permissions.is_admin)
+    async def untrack_catch(self, ctx, *, user_id):
+        await self.untrack(ctx.channel, user_id, "2")
+
+    @commands.command(name="untrack_mania", brief="Stop tracking user's mania scores")
+    @commands.check(permissions.is_admin)
+    async def untrack_mania(self, ctx, *, user_id):
+        await self.untrack(ctx.channel, user_id, "3")
+
+    async def track(self, channel, user_id, gamemode):
         user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
         user = await osu.get_user(u=user_id)
         if user_top_scores:
@@ -49,10 +85,7 @@ class ScoreTracking(commands.Cog):
                 await channel.send(content=f"User `{user.name}` is already tracked in this channel")
             await self.bot.db.commit()
 
-    @commands.command(name="untrack", brief="Stop tracking user's scores", description="")
-    @commands.check(permissions.is_admin)
-    async def untrack(self, ctx, user_id, gamemode="0"):
-        channel = ctx.channel
+    async def untrack(self, channel, user_id, gamemode):
         user = await osu.get_user(u=user_id)
         if user:
             user_id = user.id
