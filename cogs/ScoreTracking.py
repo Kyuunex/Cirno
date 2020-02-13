@@ -1,6 +1,7 @@
 import asyncio
 import time
 import discord
+import osuembed
 from discord.ext import commands
 from modules import permissions
 from modules.connections import osu as osu
@@ -55,7 +56,7 @@ class ScoreTracking(commands.Cog):
 
     async def track(self, channel, user_id, gamemode):
         user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
-        user = await osu.get_user(u=user_id)
+        user = await osu.get_user(u=user_id, m=gamemode)
         if user_top_scores:
             async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist WHERE osu_id = ?",
                                                  [str(user.id)]) as cursor:
@@ -80,13 +81,15 @@ class ScoreTracking(commands.Cog):
             if not already_tracked_gamemode:
                 await self.bot.db.execute("INSERT INTO scoretracking_channels VALUES (?, ?, ?)",
                                           [str(user.id), str(channel.id), str(gamemode)])
-                await channel.send(content=f"Tracked `{user.name}` in this channel with gamemode {gamemode}")
+                embed = await osuembed.user(user, color=0xddaa00)
+                await channel.send(content=f"Tracked in this channel with {self.get_gamemode(gamemode)} gamemode",
+                                   embed=embed)
             else:
                 await channel.send(content=f"User `{user.name}` is already tracked in this channel")
             await self.bot.db.commit()
 
     async def untrack(self, channel, user_id, gamemode):
-        user = await osu.get_user(u=user_id)
+        user = await osu.get_user(u=user_id, m=gamemode)
         if user:
             user_id = user.id
             user_name = user.name
@@ -96,7 +99,9 @@ class ScoreTracking(commands.Cog):
                                   "WHERE osu_id = ? AND channel_id = ? AND gamemode = ?",
                                   [str(user_id), str(channel.id), str(gamemode)])
         await self.bot.db.commit()
-        await channel.send(content=f"`{user_name}` is no longer tracked in this channel with gamemode {gamemode}")
+        embed = await osuembed.user(user, color=0xddaa00)
+        await channel.send(content=f"Untracked in this channel with {self.get_gamemode(gamemode)} gamemode",
+                           embed=embed)
 
     @commands.command(name="tracklist", brief="Show a list of all users being tracked and where",
                       description="",
@@ -113,7 +118,7 @@ class ScoreTracking(commands.Cog):
                     destination_list = await cursor.fetchall()
                 destination_list_str = ""
                 for destination_id in destination_list:
-                    destination_list_str += f"<#{destination_id[0]}>:{destination_id[1]} "
+                    destination_list_str += f"<#{destination_id[0]}>:{self.get_gamemode(destination_id[1])} "
                 if (str(channel.id) in destination_list_str) or everywhere:
                     await channel.send(f"osu_id: `{one_entry[0]}` "
                                        f"| Username: `{one_entry[1]}` "
