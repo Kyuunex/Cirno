@@ -4,6 +4,7 @@ import discord
 import osuembed
 from discord.ext import commands
 from modules import permissions
+from modules import wrappers
 from modules.connections import osu as osu
 
 
@@ -112,6 +113,7 @@ class ScoreTracking(commands.Cog):
         async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist") as cursor:
             tracklist = await cursor.fetchall()
         if tracklist:
+            buffer = ""
             for one_entry in tracklist:
                 async with await self.bot.db.execute("SELECT channel_id, gamemode FROM scoretracking_channels "
                                                      "WHERE osu_id = ?", [str(one_entry[0])]) as cursor:
@@ -120,9 +122,8 @@ class ScoreTracking(commands.Cog):
                 for destination_id in destination_list:
                     destination_list_str += f"<#{destination_id[0]}>:{self.get_gamemode(destination_id[1])} "
                 if (str(channel.id) in destination_list_str) or everywhere:
-                    await channel.send(f"osu_id: `{one_entry[0]}` "
-                                       f"| Username: `{one_entry[1]}` "
-                                       f"| channels: {destination_list_str}")
+                    buffer += f"User: `{one_entry[0]}` / `{one_entry[1]}` | channels: {destination_list_str}\n"
+            await wrappers.send_large_text(channel, buffer)
 
     async def scoretracking_background_loop(self):
         print("Score tracking Loop launched!")
