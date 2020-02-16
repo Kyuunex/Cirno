@@ -113,7 +113,7 @@ class ScoreTracking(commands.Cog):
         async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist") as cursor:
             tracklist = await cursor.fetchall()
         if tracklist:
-            buffer = ""
+            buffer = ":notepad_spiral: **Track list**\n\n"
             for one_entry in tracklist:
                 async with await self.bot.db.execute("SELECT channel_id, gamemode FROM scoretracking_channels "
                                                      "WHERE osu_id = ?", [str(one_entry[0])]) as cursor:
@@ -123,7 +123,8 @@ class ScoreTracking(commands.Cog):
                     destination_list_str += f"<#{destination_id[0]}>:{self.get_gamemode(destination_id[1])} "
                 if (str(channel.id) in destination_list_str) or everywhere:
                     buffer += f"User: `{one_entry[0]}` / `{one_entry[1]}` | channels: {destination_list_str}\n"
-            await wrappers.send_large_text(channel, buffer)
+            embed = discord.Embed(color=0xff6781)
+            await wrappers.send_large_embed(channel, embed, buffer)
 
     async def scoretracking_background_loop(self):
         print("Score tracking Loop launched!")
