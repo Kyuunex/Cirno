@@ -5,7 +5,6 @@ import osuembed
 from discord.ext import commands
 from modules import permissions
 from modules import wrappers
-from modules.connections import osu as osu
 
 
 class ScoreTracking(commands.Cog):
@@ -56,8 +55,8 @@ class ScoreTracking(commands.Cog):
         await self.untrack(ctx.channel, user_id, "3")
 
     async def track(self, channel, user_id, gamemode):
-        user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
-        user = await osu.get_user(u=user_id, m=gamemode)
+        user_top_scores = await self.bot.osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
+        user = await self.bot.osu.get_user(u=user_id, m=gamemode)
         if user_top_scores:
             async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist WHERE osu_id = ?",
                                                  [str(user.id)]) as cursor:
@@ -90,7 +89,7 @@ class ScoreTracking(commands.Cog):
             await self.bot.db.commit()
 
     async def untrack(self, channel, user_id, gamemode):
-        user = await osu.get_user(u=user_id, m=gamemode)
+        user = await self.bot.osu.get_user(u=user_id, m=gamemode)
         if user:
             user_id = user.id
             user_name = user.name
@@ -175,14 +174,14 @@ class ScoreTracking(commands.Cog):
             channel_list_gamemode = await cursor.fetchall()
         if channel_list_gamemode:
             print(f"Currently checking {user_name} on gamemode {gamemode}")
-            user_top_scores = await osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
+            user_top_scores = await self.bot.osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
             if user_top_scores:
                 for score in user_top_scores:
                     async with await self.bot.db.execute("SELECT score_id FROM scoretracking_history "
                                                          "WHERE score_id = ?", [str(score.id)]) as cursor:
                         already_tracked = await cursor.fetchall()
                     if not already_tracked:
-                        beatmap = await osu.get_beatmap(b=score.beatmap_id)
+                        beatmap = await self.bot.osu.get_beatmap(b=score.beatmap_id)
                         embed = await self.print_play(score, beatmap, user_name, gamemode)
                         for channel_id in channel_list_gamemode:
                             channel = self.bot.get_channel(int(channel_id[0]))
