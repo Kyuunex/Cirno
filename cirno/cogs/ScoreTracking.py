@@ -1,10 +1,10 @@
 import asyncio
 import time
 import discord
-import osuembed
+from cirno.embeds import oldembeds
 from discord.ext import commands
-from modules import permissions
-from modules import wrappers
+from cirno.modules import permissions
+from cirno.reusables import send_large_message
 
 
 class ScoreTracking(commands.Cog):
@@ -58,30 +58,31 @@ class ScoreTracking(commands.Cog):
         user_top_scores = await self.bot.osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
         user = await self.bot.osu.get_user(u=user_id, m=gamemode)
         if user_top_scores:
-            async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist WHERE osu_id = ?",
-                                                 [str(user.id)]) as cursor:
+            async with await self.bot.db.execute("SELECT osu_id, osu_username FROM scoretracking_tracklist "
+                                                 "WHERE osu_id = ?",
+                                                 [int(user.id)]) as cursor:
                 already_tracked = await cursor.fetchall()
             if not already_tracked:
                 await self.bot.db.execute("INSERT INTO scoretracking_tracklist VALUES (?,?)",
-                                          [str(user.id), str(user.name)])
+                                          [int(user.id), str(user.name)])
 
             for score in user_top_scores:
                 async with await self.bot.db.execute("SELECT score_id FROM scoretracking_history WHERE score_id = ?",
-                                                     [str(score.id)]) as cursor:
+                                                     [int(score.id)]) as cursor:
                     score_already_in_history = await cursor.fetchall()
                 if not score_already_in_history:
                     await self.bot.db.execute("INSERT INTO scoretracking_history VALUES (?, ?)",
-                                              [str(user.id), str(score.id)])
+                                              [int(user.id), int(score.id)])
 
-            async with await self.bot.db.execute("SELECT * FROM scoretracking_channels "
+            async with await self.bot.db.execute("SELECT osu_id, channel_id, gamemode FROM scoretracking_channels "
                                                  "WHERE channel_id = ? AND gamemode = ? AND osu_id = ?",
-                                                 [str(channel.id), str(gamemode), str(user.id)]) as cursor:
+                                                 [int(channel.id), int(gamemode), int(user.id)]) as cursor:
                 already_tracked_gamemode = await cursor.fetchall()
 
             if not already_tracked_gamemode:
                 await self.bot.db.execute("INSERT INTO scoretracking_channels VALUES (?, ?, ?)",
-                                          [str(user.id), str(channel.id), str(gamemode)])
-                embed = await osuembed.user(user, color=0xddaa00)
+                                          [int(user.id), int(channel.id), int(gamemode)])
+                embed = await oldembeds.user(user, color=0xddaa00)
                 await channel.send(content=f"Tracked in this channel with {self.get_gamemode(gamemode)} gamemode",
                                    embed=embed)
             else:
@@ -97,9 +98,9 @@ class ScoreTracking(commands.Cog):
             user_name = user_id
         await self.bot.db.execute("DELETE FROM scoretracking_channels "
                                   "WHERE osu_id = ? AND channel_id = ? AND gamemode = ?",
-                                  [str(user_id), str(channel.id), str(gamemode)])
+                                  [int(user_id), int(channel.id), int(gamemode)])
         await self.bot.db.commit()
-        embed = await osuembed.user(user, color=0xddaa00)
+        embed = await oldembeds.user(user, color=0xddaa00)
         await channel.send(content=f"Untracked in this channel with {self.get_gamemode(gamemode)} gamemode",
                            embed=embed)
 
@@ -109,13 +110,13 @@ class ScoreTracking(commands.Cog):
     @commands.check(permissions.is_admin)
     async def tracklist(self, ctx, everywhere=None):
         channel = ctx.channel
-        async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist") as cursor:
+        async with await self.bot.db.execute("SELECT osu_id, osu_username FROM scoretracking_tracklist") as cursor:
             tracklist = await cursor.fetchall()
         if tracklist:
             buffer = ":notepad_spiral: **Track list**\n\n"
             for one_entry in tracklist:
                 async with await self.bot.db.execute("SELECT channel_id, gamemode FROM scoretracking_channels "
-                                                     "WHERE osu_id = ?", [str(one_entry[0])]) as cursor:
+                                                     "WHERE osu_id = ?", [int(one_entry[0])]) as cursor:
                     destination_list = await cursor.fetchall()
                 destination_list_str = ""
                 for destination_id in destination_list:
@@ -123,7 +124,7 @@ class ScoreTracking(commands.Cog):
                 if (str(channel.id) in destination_list_str) or everywhere:
                     buffer += f"User: `{one_entry[0]}` / `{one_entry[1]}` | channels: {destination_list_str}\n"
             embed = discord.Embed(color=0xff6781)
-            await wrappers.send_large_embed(channel, embed, buffer)
+            await send_large_message.send_large_embed(channel, embed, buffer)
 
     async def scoretracking_background_loop(self):
         print("Score tracking Loop launched!")
@@ -131,14 +132,15 @@ class ScoreTracking(commands.Cog):
         while not self.bot.is_closed():
             try:
                 await asyncio.sleep(10)
-                async with await self.bot.db.execute("SELECT * FROM scoretracking_tracklist") as cursor:
+                async with await self.bot.db.execute("SELECT osu_id, osu_username "
+                                                     "FROM scoretracking_tracklist") as cursor:
                     score_tracklist = await cursor.fetchall()
                 if score_tracklist:
                     print(time.strftime("%X %x %Z") + " | started checking scores")
                     for one_user in score_tracklist:
                         await self.checking_process(one_user)
                     print(time.strftime("%X %x %Z") + " | finished checking scores")
-                await asyncio.sleep(1200)
+                await asyncio.sleep(7200)
             except Exception as e:
                 print(time.strftime("%X %x %Z"))
                 print("in scoretracking")
@@ -149,45 +151,50 @@ class ScoreTracking(commands.Cog):
         user_id = one_user[0]
         user_name = one_user[1]
         async with await self.bot.db.execute("SELECT channel_id FROM scoretracking_channels WHERE osu_id = ?",
-                                             [str(user_id)]) as cursor:
+                                             [int(user_id)]) as cursor:
             channel_list = await cursor.fetchall()
         if channel_list:
-            await self.check_one_user(user_id, user_name, "0")
+            await self.check_one_user(user_id, user_name, 0)
             await asyncio.sleep(1)
-            await self.check_one_user(user_id, user_name, "1")
+            await self.check_one_user(user_id, user_name, 1)
             await asyncio.sleep(1)
-            await self.check_one_user(user_id, user_name, "2")
+            await self.check_one_user(user_id, user_name, 2)
             await asyncio.sleep(1)
-            await self.check_one_user(user_id, user_name, "3")
+            await self.check_one_user(user_id, user_name, 3)
         else:
             print(f"{user_name} is not tracked anywhere so I am gonna delete it from all tables")
-            await self.bot.db.execute("DELETE FROM scoretracking_channels WHERE osu_id = ?", [str(user_id)])
-            await self.bot.db.execute("DELETE FROM scoretracking_history WHERE osu_id = ?", [str(user_id)])
-            await self.bot.db.execute("DELETE FROM scoretracking_tracklist WHERE osu_id = ?", [str(user_id)])
+            await self.bot.db.execute("DELETE FROM scoretracking_channels WHERE osu_id = ?", [int(user_id)])
+            await self.bot.db.execute("DELETE FROM scoretracking_history WHERE osu_id = ?", [int(user_id)])
+            await self.bot.db.execute("DELETE FROM scoretracking_tracklist WHERE osu_id = ?", [int(user_id)])
             await self.bot.db.commit()
         await asyncio.sleep(5)
 
     async def check_one_user(self, user_id, user_name, gamemode):
         async with await self.bot.db.execute("SELECT channel_id FROM scoretracking_channels "
                                              "WHERE osu_id = ? AND gamemode = ?",
-                                             [str(user_id), str(gamemode)]) as cursor:
+                                             [int(user_id), int(gamemode)]) as cursor:
             channel_list_gamemode = await cursor.fetchall()
         if channel_list_gamemode:
-            print(f"Currently checking {user_name} on gamemode {gamemode}")
             user_top_scores = await self.bot.osu.get_user_best(u=user_id, limit="5", m=str(gamemode))
             if user_top_scores:
                 for score in user_top_scores:
                     async with await self.bot.db.execute("SELECT score_id FROM scoretracking_history "
-                                                         "WHERE score_id = ?", [str(score.id)]) as cursor:
+                                                         "WHERE score_id = ?", [int(score.id)]) as cursor:
                         already_tracked = await cursor.fetchall()
                     if not already_tracked:
                         beatmap = await self.bot.osu.get_beatmap(b=score.beatmap_id)
                         embed = await self.print_play(score, beatmap, user_name, gamemode)
                         for channel_id in channel_list_gamemode:
                             channel = self.bot.get_channel(int(channel_id[0]))
+                            if not channel:
+                                await self.bot.db.execute("DELETE FROM scoretracking_channels WHERE channel_id = ?",
+                                                          [int(channel_id[0])])
+                                await self.bot.db.commit()
+                                continue
+
                             await channel.send(embed=embed)
                         await self.bot.db.execute("INSERT INTO scoretracking_history VALUES (?, ?)",
-                                                  [str(user_id), str(score.id)])
+                                                  [int(user_id), int(score.id)])
                         await self.bot.db.commit()
             else:
                 print(f"{user_id} | restricted")

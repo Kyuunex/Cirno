@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
+import os
 
 from discord.ext import commands
 import aiosqlite
 from aioosuapi import aioosuapi
 
+from cirno.modules import first_run
+from cirno.manifest import VERSION
+from cirno.manifest import CONTRIBUTORS
 
-from modules import first_run
+from cirno.modules.storage_management import database_file
+from cirno.modules.connections import bot_token
+from cirno.modules.connections import osu_api_key
 
-from modules.connections import bot_token as bot_token
-from modules.connections import osu_api_key as osu_api_key
-from modules.connections import database_file as database_file
+if os.environ.get('CIRNO_PREFIX'):
+    command_prefix = os.environ.get('CIRNO_PREFIX')
+else:
+    command_prefix = ","
 
-first_run.create_tables()
+first_run.ensure_tables()
 
 initial_extensions = [
-    "cogs.BotManagement",
-    "cogs.ScoreTracking",
+    "cirno.cogs.BotManagement",
+    "cirno.cogs.ScoreTracking",
 ]
 
 
@@ -23,7 +30,10 @@ class Cirno(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.background_tasks = []
-        self.app_version = (open(".version", "r+").read()).rstrip()
+
+        self.app_version = VERSION
+        self.project_contributors = CONTRIBUTORS
+
         self.description = f"Cirno {self.app_version}"
         self.database_file = database_file
         self.osu = aioosuapi(osu_api_key)
@@ -59,5 +69,5 @@ class Cirno(commands.Bot):
         await first_run.add_admins(self)
 
 
-client = Cirno(command_prefix=",")
+client = Cirno(command_prefix=command_prefix)
 client.run(bot_token)
