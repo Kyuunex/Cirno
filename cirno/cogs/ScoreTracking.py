@@ -197,7 +197,11 @@ class ScoreTracking(commands.Cog):
                                                   [int(user_id), int(score.id)])
                         await self.bot.db.commit()
             else:
-                print(f"{user_id} | restricted")
+                print(f"{user_id} | restricted, so untracked")
+                await self.bot.db.execute("DELETE FROM scoretracking_channels WHERE osu_id = ?", [int(user_id)])
+                await self.bot.db.execute("DELETE FROM scoretracking_history WHERE osu_id = ?", [int(user_id)])
+                await self.bot.db.execute("DELETE FROM scoretracking_tracklist WHERE osu_id = ?", [int(user_id)])
+                await self.bot.db.commit()
 
     def get_gamemode(self, mode_id):
         gamemodes = [
