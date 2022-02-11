@@ -17,8 +17,8 @@ setup(
     author_email='kyuunex@protonmail.ch',
     url='https://github.com/Kyuunex/Cirno',
     install_requires=[
-        'discord.py[voice]',
+        'discord.py[voice]==1.7.3',
         'aiosqlite',
-        'aioosuapi @ git+https://github.com/Kyuunex/aioosuapi.git@v1'
+        'aioosuapi @ git+https://github.com/Kyuunex/aioosuapi.git@1.2.1'
     ],
 )
