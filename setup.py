@@ -19,6 +19,6 @@ setup(
     install_requires=[
         'discord.py[voice]==1.7.3',
         'aiosqlite',
-        'aioosuapi @ git+https://github.com/Kyuunex/aioosuapi.git@1.2.1'
+        'aioosuapi @ git+https://github.com/Kyuunex/aioosuapi.git@1.2.4'
     ],
 )
